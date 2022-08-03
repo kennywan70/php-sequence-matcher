@@ -11,7 +11,7 @@ namespace Jfcherng\Diff;
  *
  * @see https://docs.python.org/3/library/difflib.html
  */
-final class SequenceMatcher
+final class SequenceMatcher implements IMatcher
 {
     /** @var int 0, opcode: no operation */
     const OP_NOP = 0;
@@ -578,6 +578,32 @@ final class SequenceMatcher
     }
 
     /**
+     * Return a measure of the similarity between the two sequences.
+     * This will be a float value between 0 and 1.
+     *
+     * Out of all of the ratio calculation functions, this is the most
+     * expensive to call if getMatchingBlocks or getOpcodes is yet to be
+     * called. The other calculation methods (quickRatio and realQuickRatio)
+     * can be used to perform quicker calculations but may be less accurate.
+     *
+     * The ratio is calculated as (2 * number of matches) / total number of
+     * elements in both sequences.
+     *
+     * @return float the calculated ratio
+     */
+    public function ratio(): float
+    {
+        $matchesCount = 0;
+
+        foreach ($this->getMatchingBlocks() as $block) {
+            $matchesCount += $block[\count($block) - 1];
+        }
+
+        return $this->calculateRatio($matchesCount, \count($this->a) + \count($this->b));
+    }
+
+
+    /**
      * Convert an operation code from int into its string form.
      *
      * @param int $op the operation code
@@ -717,5 +743,19 @@ final class SequenceMatcher
     private function isBJunk(string $b): bool
     {
         return isset($this->junkDict[$b]);
+    }
+
+    /**
+     * Helper function for calculating the ratio to measure similarity for the strings.
+     * The ratio is defined as being 2 * (number of matches / total length).
+     *
+     * @param int $matchesCount the number of matches in the two strings
+     * @param int $length       the length of the two strings
+     *
+     * @return float the calculated ratio
+     */
+    private function calculateRatio(int $matchesCount, int $length = 0): float
+    {
+        return $length ? ($matchesCount << 1) / $length : 1;
     }
 }
